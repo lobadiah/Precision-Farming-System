@@ -1,0 +1,107 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: farm_admin
+      POSTGRES_PASSWORD: farm_password
+      POSTGRES_DB: farm_precision
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: farm_admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: farm_password123
+      DOCKER_INFLUXDB_INIT_ORG: farm_org
+      DOCKER_INFLUXDB_INIT_BUCKET: farm_telemetry
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: supersecrettoken123
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+      - postgres
+    restart: unless-stopped
+
+  ingestor:
+    build: .
+    container_name: ingestor
+    command: python -u -m ingestion.ingestor
+    environment:
+      - MQTT_BROKER=mosquitto
+      - INFLUX_URL=http://influxdb:8086
+      - PG_HOST=postgres
+    depends_on:
+      - mosquitto
+      - influxdb
+      - postgres
+    restart: unless-stopped
+
+  backend:
+    build: .
+    container_name: backend
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - PG_HOST=postgres
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=supersecrettoken123
+      - INFLUX_ORG=farm_org
+      - INFLUX_BUCKET=farm_telemetry
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  ml_worker:
+    build: .
+    container_name: ml_worker
+    command: python -u -m ml.ml_worker
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - PG_HOST=postgres
+    depends_on:
+      - influxdb
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  postgres_data:
+  influxdb_data:
+  grafana_data:

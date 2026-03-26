@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    isDefault: true
+    jsonData:
+      version: Flux
+      organization: farm_org
+      defaultBucket: farm_telemetry
+    secureJsonData:
+      token: supersecrettoken123
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: farm_admin
+    database: farm_precision
+    secureJsonData:
+      password: "farm_password"
+    jsonData:
+      sslmode: "disable"

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Precision | Pro Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --secondary: #27ae60;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 20px;
+        }
+
+        .logo-area h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #2ecc71, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .stat-value { font-size: 2.2rem; font-weight: 600; margin: 10px 0; }
+        .stat-label { color: var(--text-dim); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+        }
+
+        .alert-panel { max-height: 800px; overflow-y: auto; }
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--accent); }
+
+        .alert-item {
+            background: #0f172a;
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 6px solid var(--warning);
+        }
+
+        .alert-item.water { border-left-color: #38bdf8; }
+        .alert-item.fert { border-left-color: #f1c40f; }
+
+        .instruction-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px dashed var(--text-dim);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .alert-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 10px;
+        }
+
+        .done-btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 12px;
+            width: 100%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .done-btn:hover { background: var(--secondary); transform: translateY(-1px); }
+
+        .btn-refresh {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <div class="logo-area">
+                <h1>Farm Precision Pro</h1>
+                <p style="margin: 5px 0 0; color: var(--text-dim);">Final Synchronized Dashboard v2</p>
+            </div>
+            <div class="header-actions">
+                <span id="status-dot" style="color: var(--primary);">● System Online</span>
+                <button class="btn-refresh" onclick="refreshAll()">Manual Sync</button>
+            </div>
+        </header>
+
+        <!-- TOP STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Soil Moisture</div>
+                <div class="stat-value" id="val-moisture">--%</div>
+                <div id="moisture-trend" style="font-size: 0.8rem;">Scanning...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Air Temp</div>
+                <div class="stat-value" id="val-temp">--°C</div>
+                <div id="temp-trend" style="font-size: 0.8rem;">Scanning...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Humidity</div>
+                <div class="stat-value" id="val-humidity">--%</div>
+                <div id="hum-trend" style="font-size: 0.8rem;">Scanning...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Nitrogen (N)</div>
+                <div class="stat-value" id="val-n">--</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">Ideal: 100</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="chart-section" style="display: grid; gap: 20px;">
+                <div class="card">
+                    <h2>24-Hour Soil Moisture Trend</h2>
+                    <canvas id="moistureChart" height="150"></canvas>
+                </div>
+                <div class="card">
+                    <h2>Atmosphere (Temp & Humidity)</h2>
+                    <canvas id="envChart" height="150"></canvas>
+                </div>
+            </div>
+
+            <div class="card alert-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>AI Advice (Farmer's Tasks)</h2>
+                    <span style="font-size: 0.7rem; color: var(--text-dim);" id="last-update">---</span>
+                </div>
+                <div id="alerts-list">
+                    <!-- Instructions will load here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ZONE = 'Zone_A';
+        const BASE_API = window.location.port ? '/api/v1' : 'http://localhost:8000/api/v1';
+
+        let moistureChart, envChart;
+
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { 
+                        grid: { color: '#334155' }, 
+                        ticks: { color: '#94a3b8' },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: { legend: { labels: { color: '#f8fafc' } } }
+            };
+
+            const ctx1 = document.getElementById('moistureChart');
+            if (ctx1) moistureChart = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [{ 
+                    label: 'Moisture %', 
+                    data: [], 
+                    borderColor: '#2ecc71', 
+                    tension: 0.3, 
+                    fill: true, 
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    spanGaps: true,
+                    showLine: true,
+                    pointRadius: 3
+                }] },
+                options: commonOptions
+            });
+
+            const ctx2 = document.getElementById('envChart');
+            if (ctx2) envChart = new Chart(ctx2, {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: 'Temp °C', data: [], borderColor: '#ef4444', spanGaps: true, showLine: true, pointRadius: 3 }, 
+                    { label: 'Humidity %', data: [], borderColor: '#38bdf8', spanGaps: true, showLine: true, pointRadius: 3 }
+                ] },
+                options: commonOptions
+            });
+        }
+
+        async function updateSensors() {
+            try {
+                const res = await fetch(`${BASE_API}/sensors/${ZONE}`);
+                const data = await res.json();
+                if (!data || data.length === 0) return;
+
+                const latest = data[0];
+                document.getElementById('val-moisture').innerText = `${(latest.soil_moisture || 0).toFixed(1)}%`;
+                document.getElementById('val-temp').innerText = `${(latest.temperature || 0).toFixed(1)}°C`;
+                document.getElementById('val-humidity').innerText = `${(latest.humidity || 0).toFixed(1)}%`;
+                document.getElementById('val-n').innerText = latest.nitrogen || '100';
+
+                data.reverse();
+                const labels = data.map(d => new Date(d._time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                
+                moistureChart.data.labels = labels;
+                moistureChart.data.datasets[0].data = data.map(d => d.soil_moisture);
+                moistureChart.update();
+
+                envChart.data.labels = labels;
+                envChart.data.datasets[0].data = data.map(d => d.temperature);
+                envChart.data.datasets[1].data = data.map(d => d.humidity);
+                envChart.update();
+            } catch (err) { console.error('Sensor error', err); }
+        }
+
+        async function updateAlerts() {
+            try {
+                const res = await fetch(`${BASE_API}/recommendations/${ZONE}`);
+                const data = await res.json();
+                const list = document.getElementById('alerts-list');
+                const lastUp = document.getElementById('last-update');
+                
+                list.innerHTML = '';
+                lastUp.innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+
+                if (data.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-dim); text-align:center; padding: 20px;">The field is happy. No action needed!</div>';
+                    return;
+                }
+
+                // Show only the latest recommendation for each action type
+                const seen = new Set();
+                const uniqueData = data.filter(item => {
+                    if (seen.has(item.action_type)) return false;
+                    seen.add(item.action_type);
+                    return true;
+                });
+
+                uniqueData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `alert-item ${item.action_type === 'WATER' ? 'water' : 'fert'}`;
+                    const icon = item.action_type === 'WATER' ? '💧' : '🌱';
+                    const isCompleted = item.status === 'COMPLETED';
+                    
+                    const instruction = item.action_type === 'WATER' 
+                        ? 'Physical Action: GO TO THE FIELD AND TURN ON THE WATER. The soil is too dry.' 
+                        : 'Physical Action: GO TO THE FIELD AND SPREAD FERTILIZER. The plants are hungry.';
+
+                    let metrics = {};
+                    try { metrics = typeof item.reasoning_metrics === 'string' ? JSON.parse(item.reasoning_metrics) : (item.reasoning_metrics || {}); } catch(e) {}
+                    
+                    const unit = item.action_type === 'WATER' ? '%' : '';
+                    const currentTxt = (metrics.current !== undefined && metrics.current !== null) ? `${metrics.current}${unit}` : '--';
+                    const targetTxt = (metrics.target !== undefined && metrics.target !== null) ? `${metrics.target}${unit}` : '--';
+
+                    if (isCompleted) {
+                        div.style.borderLeftColor = 'var(--primary)';
+                        div.style.opacity = '0.8';
+                    }
+
+                    const statusHtml = isCompleted
+                        ? `<span style="color: var(--primary);">✅ Task Completed</span>`
+                        : `<span style="color: var(--warning);">● Action Required (Not Finished)</span>`;
+
+                    const buttonHtml = isCompleted
+                        ? ''
+                        : `<button class="done-btn" onclick="markDone(${item.id})">✅ I HAVE FINISHED THIS TASK</button>`;
+
+                    div.innerHTML = `
+                        <div style="font-weight:600; font-size: 1.1rem; margin-bottom: 5px; color: #fff;">${icon} ${item.action_type}</div>
+                        <div class="instruction-box">👉 ${instruction}</div>
+                        <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 5px;">📍 Current Level: ${currentTxt} (Target: ${targetTxt})</div>
+                        <div style="font-size: 0.9rem; color: var(--accent);">Amount Needed: ${item.suggested_amount} Units</div>
+                        <div class="alert-meta">
+                            ${statusHtml}
+                            <span>${new Date(item.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        ${buttonHtml}
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (err) { console.error('Alerts error', err); }
+        }
+
+        async function markDone(id) {
+            try {
+                const res = await fetch(`${BASE_API}/recommendations/${id}/complete`, { method: 'POST' });
+                if (res.ok) {
+                    refreshAll();
+                }
+            } catch (err) { console.error('Error marking done', err); }
+        }
+
+        function refreshAll() {
+            updateSensors();
+            updateAlerts();
+        }
+
+        window.onload = () => {
+            initCharts();
+            refreshAll();
+            setInterval(refreshAll, 10000);
+        };
+    </script>
+</body>
+</html>
