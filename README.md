@@ -130,5 +130,5 @@ To move from a computer-based system to a mobile app that a farmer can download:
 
 ---
 *Created for the Farm Precision System Project.*
-*Obadiah Louis Adamu*
+* by Obadiah Louis Adamu*
 
